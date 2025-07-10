@@ -73,12 +73,36 @@
   (color2img (hsl->color (hsl (flmod f 1) 1 0.5))))
 
 (define (plot-perlin2d w h
-                       #:scale [scale 1])
+                       #:scale [scale 1]
+                       #:sample [sample (perlin2d #:scale 1.4)])
   (let* ([blank (rectangle w h "solid" trns)]
-         [points (mkgrid w h)]
-         [sample (perlin2d #:scale 1.4)])
+         [points (mkgrid w h)])
     (foldr (λ (p acc) (put-pixel p (f2c-hue (sample (map (curry * scale) p))) acc)) blank points)))
 
-(define plot (plot-perlin2d 200 200 #:scale 0.02))
-(save-image plot "out.png")
-plot
+(define (perlin2d-fbm
+         sample
+         octaves
+         lacunarity
+         gain
+         #:scale [scale 1])
+  (λ (p) (for/fold ([total 0]
+                    [max_val 0]
+                    [freq 1]
+                    [amp 1]
+                    #:result (/ total max_val))
+                   ([oct (in-range octaves)])
+           (values
+            (+ total (* amp (sample (map (curry * freq) p))))
+            (+ max_val amp)
+            (* freq lacunarity)
+            (* amp gain)))))
+
+(define plot1 (plot-perlin2d 200 200 #:scale 0.02))
+(save-image plot1 "out.png")
+plot1
+
+(define plot2
+  (let ([sample (perlin2d #:scale 1.4)])
+    (plot-perlin2d 200 200 #:scale 0.02 #:sample (perlin2d-fbm sample 4 2 0.3))))
+(save-image plot2 "out_octaves.png")
+plot2
